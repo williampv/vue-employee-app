@@ -24,20 +24,40 @@
                 </tr>
             </thead>
             <tbody>
-                <!-- <tr *ngFor="let emp of employees">
-                    <td>{{ emp.id }}</td>
-                    <td>{{ emp.name }}</td>
+                <tr v-for="emp in employees" :key="emp.employeeId">
+                    <td>{{ emp.employeeId }}</td>
+                    <td>{{ emp.firstName }}</td>
                     <td>{{ emp.email }}</td>
-                </tr> -->
+                </tr>
             </tbody>
         </table>
     </div>
 </template>
 
 <script setup lang="ts">
-    
+    import { onMounted, ref } from 'vue';
+    import axios from 'axios';
+
+    interface Employee {
+        employeeId: number;
+        firstName: string;
+        email: string;
+    }
+
+    const employees = ref<Employee[]>([]);
+
+    onMounted(() => {
+        axios.get('http://localhost:8000/api/employees')
+            .then(response => {
+                employees.value = response.data;
+                console.log('Employees fetched:', employees.value);
+            })
+            .catch(error => {
+                console.error('Error fetching employees:', error);
+            });
+    });
 </script>
 
-<style lang="scss" scoped>
+<style lang="css" scoped>
 
 </style>
