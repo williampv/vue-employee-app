@@ -3,12 +3,12 @@
         <form>
             <div class="form-group">
                 <label for="name">Enter First Name</label>
-                <input type="text" name="name" class="form-control" v-model="newEmployee.firstName">
+                <input type="text" name="firstName" class="form-control" v-model="newEmployee.firstName">
             </div>
 
             <div class="form-group">
                 <label for="name">Enter Last Name</label>
-                <input type="text" name="name" class="form-control" v-model="newEmployee.lastName">
+                <input type="text" name="lastName" class="form-control" v-model="newEmployee.lastName">
             </div>
 
             <div class="form-group">
@@ -80,8 +80,7 @@
     }
 
     const employees = ref<Employee[]>([]);
-    const newEmployee = ref<Employee>({
-        employeeId: 0,
+    const newEmployee = ref({
         firstName: '',
         lastName: '',
         email: '',
@@ -101,6 +100,24 @@
             })
             .catch(error => {
                 console.error('Error fetching employees:', error);
+            });
+    };
+
+    const addEmployee = () => {
+        axios.post('http://localhost:8000/api/employees', newEmployee.value)
+            .then(response => {
+                employees.value.push(response.data);
+                newEmployee.value = {
+                    firstName: '',
+                    lastName: '',
+                    email: '',
+                    contactNo: '',
+                    city: '',
+                    address: ''
+                };
+            })
+            .catch(error => {
+                console.error('Error adding employee:', error);
             });
     };
 
