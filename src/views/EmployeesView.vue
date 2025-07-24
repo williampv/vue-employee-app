@@ -1,6 +1,6 @@
 <template>
     <div class="container">
-        <form>
+        <form @submit.prevent="editingEmployee ? updateEmployee() : addEmployee()">
             <div class="form-group">
                 <label for="name">Enter First Name</label>
                 <input type="text" name="firstName" class="form-control" v-model="newEmployee.firstName">
@@ -31,7 +31,8 @@
                 <input type="text" name="address" class="form-control" v-model="newEmployee.address">
             </div>
 
-            <button class="btn btn-primary btn-md mt-4" @click="addEmployee">Submit</button>
+            <button class="btn btn-primary btn-md mt-4">{{ editingEmployee ? 'Update' : 'Add' }}</button>
+            <button v-if="editingEmployee" class="btn btn-secondary mt-4 ms-2" @click="cancelEdit" type="button">Cancel</button>
         </form>
         <br>
         <table class="table">
@@ -56,8 +57,8 @@
                     <td>{{ emp.city }}</td>
                     <td>{{ emp.address }}</td>
                     <td>
-                        <button class="btn btn-primary btn-md me-2">Edit</button>
-                        <button class="btn btn-danger btn-md">Delete</button>
+                        <button class="btn btn-primary btn-md me-2" @click="editEmployee(emp)">Edit</button>
+                        <button class="btn btn-danger btn-md" @click="deleteEmployee(emp.employeeId)">Delete</button>
                     </td>
                 </tr>
             </tbody>
@@ -80,7 +81,7 @@
     }
 
     const employees = ref<Employee[]>([]);
-    const newEmployee = ref({
+    const newEmployee = ref<Omit<Employee, 'employeeId'>>({
         firstName: '',
         lastName: '',
         email: '',
@@ -88,39 +89,74 @@
         city: '',
         address: ''
     });
+    const editingEmployee = ref<Employee | null>(null);
 
-    onMounted(() => {
-        fetchEmployees();
-    });
-
-    const fetchEmployees = () => {
-        axios.get('http://localhost:8000/api/employees')
-            .then(response => {
-                employees.value = response.data;
-            })
-            .catch(error => {
-                console.error('Error fetching employees:', error);
-            });
+    
+    const fetchEmployees = async () => {
+        try {
+            const res = await axios.get('http://localhost:8000/api/employees');
+            employees.value = res.data;
+        } catch (error) {
+            console.error('Error fetching employees:', error);
+        }
     };
 
-    const addEmployee = () => {
-        axios.post('http://localhost:8000/api/employees', newEmployee.value)
-            .then(response => {
-                employees.value.push(response.data);
-                newEmployee.value = {
-                    firstName: '',
-                    lastName: '',
-                    email: '',
-                    contactNo: '',
-                    city: '',
-                    address: ''
-                };
-            })
-            .catch(error => {
-                console.error('Error adding employee:', error);
-            });
+    const addEmployee = async () => {
+        try {
+            const res = await axios.post('http://localhost:8000/api/employees', newEmployee.value);
+            employees.value.push(res.data);
+            resetForm();
+        } catch (error) {
+            console.error('Error adding employee:', error);
+        }
     };
 
+    const editEmployee = (emp: Employee) => {
+        editingEmployee.value = { ...emp };
+        Object.assign(newEmployee.value, emp);
+    };
+
+    const updateEmployee = async () => {
+        if (!editingEmployee.value) return;
+        try {
+            const res = await axios.put(`http://localhost:8000/api/employees/${editingEmployee.value.employeeId}`, newEmployee.value);
+            const idx = employees.value.findIndex(e => e.employeeId === editingEmployee.value!.employeeId);
+            if (idx !== -1) {
+            employees.value[idx] = res.data;
+            }
+            resetForm();
+            editingEmployee.value = null;
+        } catch (error) {
+            console.error('Error updating employee:', error);
+        }
+    };
+
+    const deleteEmployee = async (id: number) => {
+        try {
+            await axios.delete(`http://localhost:8000/api/employees/${id}`);
+            employees.value = employees.value.filter(e => e.employeeId !== id);
+        } catch (error) {
+            console.error('Error deleting employee:', error);
+        }
+    };
+
+    const cancelEdit = () => {
+        editingEmployee.value = null;
+        resetForm();
+    };
+
+    const resetForm = () => {
+        newEmployee.value = {
+            firstName: '',
+            lastName: '',
+            email: '',
+            contactNo: '',
+            city: '',
+            address: ''
+        };
+    };
+    
+    onMounted(fetchEmployees);
 </script>
 
 <style lang="css" scoped>
